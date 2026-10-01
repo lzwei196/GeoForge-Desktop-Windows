@@ -11,7 +11,7 @@
 #define AppName "GeoForge Desktop"
 #define AppExe "GeoForge Desktop.exe"
 #define AppPublisher "KISS — Knowledge Infrastructure for Scientific Simulation"
-#define AppUrl "https://github.com/lzwei196/KISS---Knowledge-Infrastructure-for-Scientific-Simulation"
+#define AppUrl "https://github.com/lzwei196/GeoForge-Desktop-Windows"
 
 [Setup]
 AppId={{7E81E664-31FA-4D50-A606-980056B3D08A}

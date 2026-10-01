@@ -6,6 +6,14 @@ Desktop update agents should read the JSON manifest first and use this file to e
 这是 `release-manifest.json` 的用户版说明。Windows、macOS 和 Linux 的更新 Agent
 应先读取 JSON，再用本文件向用户解释更新内容。
 
+## Windows repository split — 2026-10-01 (source migration; not rebuilt)
+
+- Windows application development and releases move to `lzwei196/GeoForge-Desktop-Windows`, with `main` as the development branch. History is preserved from `windows-version` at `96409ba3bcbf64322ca7a8eba4ba8e2bf32df535`.
+- Windows installation/source documentation and installer support/update links point to the Windows repository. macOS and Linux have separate application repositories; KI updates remain on canonical KISS `main`.
+- Release CI now uses only the native Windows spec, installer and existing frozen/installed smoke checks. It refuses existing releases (including drafts), never deletes a draft and never clobbers historical assets.
+- No new application version, native build, installer acceptance or scientific validation is claimed. Historical `release-manifest.json`, reports and release assets retain their original provenance. Details: [migration record](docs/REPOSITORY_SPLIT.md) and [future release guide](docs/WINDOWS_RELEASE.md).
+- Windows 源码与发布迁移到独立仓库，保留原分支历史；KI 更新仍使用 KISS 的 `main`。本次仅为仓库拆分，未重新编译或重复科学验证，历史发布文件不覆盖。
+
 ## Windows end-to-end test fixes — 2026-09-30 (FSM2 Alptal, compiled app)
 
 - **Projects can reach "Completed" again.** GeoForge's own files (the calibration manifest every chat gets, and the Project View it renders) and the plan's declared input files were counted as unverified results, so no real project could finish, and the notice asked users to remove their own inputs. Only real results without a passing run record now block completion.

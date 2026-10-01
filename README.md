@@ -2,7 +2,7 @@
   <img src="assets/logo.svg" alt="GeoForge" width="120">
 </p>
 
-<h1 align="center">GeoForge Desktop</h1>
+<h1 align="center">GeoForge Desktop for Windows</h1>
 
 <p align="center">
   <b>Run Earth-system models by asking for what you want.</b><br>
@@ -10,12 +10,25 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-black">
+  <img src="https://img.shields.io/badge/Windows-x64-blue">
   <img src="https://img.shields.io/badge/models-127-orange">
   <img src="https://img.shields.io/badge/License-MIT-green">
 </p>
 
 ---
+
+This repository owns the **Windows application source, packaging and releases**.
+Development continues on `main`, imported with history from the former
+`windows-version` branch. The split itself did not rebuild the application;
+see the [migration record](docs/REPOSITORY_SPLIT.md) for source provenance and
+validation limits.
+
+Other platforms: [macOS](https://github.com/lzwei196/GeoForge-Desktop-macOS) ·
+[Linux](https://github.com/lzwei196/GeoForge-Desktop-Linux).
+The canonical [KISS KI library](https://github.com/lzwei196/KISS-Knowledge-Infrastructure-for-Scientific-Simulation)
+remains separate. Automatic KI updates still read its `main` branch, not this
+application repository. The bundled `models/` and `ki_tools_common/` siblings
+remain available for offline startup and packaging.
 
 Running a hydrology or land-surface model normally means a week of compiler
 flags, NetCDF versions and undocumented input formats before the first
@@ -28,30 +41,31 @@ reimplementations.
 
 ## Install
 
-**macOS (Apple Silicon)** — download from
-[Releases](../../releases/latest):
+**Windows x64** — download the installer or portable ZIP from
+[Windows releases](https://github.com/lzwei196/GeoForge-Desktop-Windows/releases).
 
-```bash
-unzip GeoForge-Desktop-macos-arm64.app.zip
-xattr -dr com.apple.quarantine "GeoForge Desktop.app"   # unsigned build
-open "GeoForge Desktop.app"
+- Installer: run `GeoForge-Desktop-Setup-v<version>-Windows-x64.exe`.
+- Portable: extract `GeoForge-Desktop-v<version>-Windows-x64.zip`, keep the whole
+  folder together (including `_internal`), and run `GeoForge Desktop.exe`.
+- Compare the download with that release's `SHA256SUMS-Windows.txt` when present.
+  Windows may warn about an unsigned or unrecognized publisher; verify the
+  source and checksum before deciding whether to run it.
+
+The Windows build opens its interface in your browser and provides a tray
+entry; use **Exit GeoForge** in the tray to stop the application. Bundled KIs
+do not mean every scientific model or external compiler is already installed.
+
+**Run from source** with Python 3.11, in PowerShell:
+
+```powershell
+git clone https://github.com/lzwei196/GeoForge-Desktop-Windows.git
+cd GeoForge-Desktop-Windows
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e kiss -e ki_tools_common
+.\.venv\Scripts\kiss.exe gui
 ```
 
-The `xattr` line is needed because the app is not yet notarised by Apple.
-Without it macOS refuses to open it.
-
-**Everything else** — run from source. Works on Linux, macOS and Windows:
-
-```bash
-git clone https://github.com/lzwei196/KISS---Knowledge-Infrastructure-for-Scientific-Simulation.git
-cd KISS---Knowledge-Infrastructure-for-Scientific-Simulation
-pip install -e kiss/
-kiss gui            # opens the same interface in your browser
-```
-
-> Intel Macs: not in the current release. GitHub's Intel runners have been
-> unavailable for hours at a time, so those builds are best-effort and the
-> release ships without one rather than waiting. Build from source meanwhile.
+For release maintainers, see [Windows build and release checks](docs/WINDOWS_RELEASE.md).
 
 ## The manual
 
@@ -288,8 +302,10 @@ kiss doctor                  # what would stop a KI working elsewhere
 - **127** model packages, **123** with a full `dag.yaml` contract
 - **19** installs have a recorded, executed recipe. The other 108 go through
   the agent, which works but is slower and can fail
-- macOS builds are **unsigned** — hence the `xattr` step
-- Apple Silicon only in the current release
+- This repository publishes Windows x64 builds only; macOS and Linux releases
+  live in the linked platform repositories.
+- Repository migration is not a new build or a new scientific validation run.
+  Historical build evidence remains in the changelog and release attachments.
 
 ## Digging deeper
 

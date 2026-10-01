@@ -1,10 +1,11 @@
 """Validated, non-blocking updates for GeoForge's curated KI library.
 
 The desktop app ships a known-good KI snapshot so it always starts offline.
-On each desktop launch this module checks the platform branch of GeoForge's
-public repository.  A changed library is downloaded into a versioned staging
-directory, checked with the same deterministic package verifier used by the
-Library import screen, and only then made active.  On Windows, a snapshot
+On each desktop launch this module checks main in the canonical KISS KI
+repository, not the platform application repository. A changed library is
+downloaded into a versioned staging directory, checked with the same
+deterministic package verifier used by the Library import screen, and only
+then made active. On Windows, a snapshot
 that would remove the Windows installation notes or recipes from the current
 library is reported as ``kept`` and not activated.
 
@@ -35,7 +36,7 @@ from . import doctor, firstrun, settings, tls
 from .catalog import KI, Catalog, installation_platform
 
 
-REPOSITORY = "lzwei196/KISS---Knowledge-Infrastructure-for-Scientific-Simulation"
+REPOSITORY = "lzwei196/KISS-Knowledge-Infrastructure-for-Scientific-Simulation"
 REPOSITORY_URL = f"https://github.com/{REPOSITORY}"
 API_ROOT = f"https://api.github.com/repos/{REPOSITORY}"
 ARCHIVE_ROOT = f"https://codeload.github.com/{REPOSITORY}/zip"

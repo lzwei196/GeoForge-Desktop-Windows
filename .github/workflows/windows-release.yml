@@ -1,12 +1,12 @@
-name: Windows release
+name: Windows native build and publish
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       tag:
-        description: Existing release tag to receive the Windows assets
+        description: New version tag to build; an existing release is never modified
         required: true
-        default: windows-v0.6.54
+        type: string
 
 permissions:
   contents: write
@@ -16,20 +16,40 @@ jobs:
     runs-on: windows-latest
     env:
       PYTHONUTF8: "1"
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ inputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag }}
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      - name: Require a version tag and refuse existing releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = python -c "import tomllib;print(tomllib.load(open('kiss/pyproject.toml','rb'))['project']['version'])"
+          if ($LASTEXITCODE -ne 0) { throw 'cannot read application version' }
+          if ($env:RELEASE_TAG -notin @("v$version", "windows-v$version")) { throw 'tag must match the application version' }
+          $tagCommit = git rev-parse --verify "refs/tags/$env:RELEASE_TAG^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw 'release tag must already exist' }
+          if ($tagCommit -ne (git rev-parse HEAD)) { throw 'checkout does not match release tag' }
+          $releaseTags = gh api --paginate "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name'
+          if ($LASTEXITCODE -ne 0) { throw 'cannot check existing releases; refusing publication' }
+          if ($env:RELEASE_TAG -in @($releaseTags)) { throw 'release already exists (including drafts); historical assets are immutable' }
+
       - name: Install build dependencies
         shell: pwsh
         run: |
           python -m pip install --quiet pyinstaller pytest truststore certifi -e kiss -e ki_tools_common -r kiss/requirements-calibration.txt
+          if ($LASTEXITCODE -ne 0) { throw 'build dependency installation failed' }
           choco install innosetup -y --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
 
       - name: Source regression tests
         shell: pwsh
@@ -44,6 +64,7 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean --distpath dist-windows --workpath build-windows kiss/GeoForgeDesktopWindows.spec
+          if ($LASTEXITCODE -ne 0) { throw 'PyInstaller build failed' }
           $version = python -c "import tomllib;print(tomllib.load(open('kiss/pyproject.toml','rb'))['project']['version'])"
           $bundle = "dist-windows/GeoForge Desktop $version Windows"
           if (!(Test-Path "$bundle/_internal/python311.dll")) { throw 'python311.dll missing' }
@@ -63,6 +84,7 @@ jobs:
         run: |
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
           & $iscc "/DAppVersion=$env:APP_VERSION" "/DSourceDir=$((Resolve-Path $env:BUNDLE).Path)" "/DOutputDir=$((Get-Location).Path)/installer-output" kiss/installer/GeoForgeDesktopWindows.iss
+          if ($LASTEXITCODE -ne 0) { throw 'installer compilation failed' }
           $installer = (Resolve-Path "installer-output/GeoForge-Desktop-Setup-v$env:APP_VERSION-Windows-x64.exe").Path
           $testDir = Join-Path $env:RUNNER_TEMP 'GeoForge-release-test'
           $process = Start-Process $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',("/DIR=`"$testDir`"") -WindowStyle Hidden -Wait -PassThru
@@ -85,7 +107,11 @@ jobs:
             Set-Content SHA256SUMS-Windows.txt
           $validation = @{
             version = $env:APP_VERSION
+            source_repository = $env:GITHUB_REPOSITORY
+            source_tag = $env:RELEASE_TAG
             source_commit = (git rev-parse HEAD)
+            built_at_utc = (Get-Date).ToUniversalTime().ToString('o')
+            historical_manifest = 'release-manifest.json is preserved historical evidence, not provenance for this new build.'
             source_regression_tests = 'passed; see Actions job logs'
             frozen = Get-Content windows-frozen-smoke.json -Raw | ConvertFrom-Json
             installed = Get-Content windows-installed-smoke.json -Raw | ConvertFrom-Json
@@ -95,15 +121,29 @@ jobs:
           }
           $validation | ConvertTo-Json -Depth 8 | Set-Content Windows-release-validation.json -Encoding utf8
 
-      - name: Attach assets to the release
-        shell: bash
+      - name: Publish a new release without replacing historical assets
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${{ inputs.tag }}" \
-            "installer-output/GeoForge-Desktop-Setup-v${APP_VERSION}-Windows-x64.exe" \
-            "GeoForge-Desktop-v${APP_VERSION}-Windows-x64.zip" \
-            SHA256SUMS-Windows.txt \
-            release-manifest.json DESKTOP_CHANGELOG.md \
-            Windows-release-validation.json \
-            windows-frozen-smoke.json windows-installed-smoke.json --clobber
+          $notes = @"
+          Windows x64 build from $env:GITHUB_REPOSITORY at $(git rev-parse HEAD).
+
+          Install the Setup executable, or extract the portable ZIP and keep its entire folder together.
+          See Windows-release-validation.json and the two smoke reports for checks run by this build.
+          release-manifest.json is retained historical evidence; it does not describe this build.
+          This workflow does not validate paid AI providers or scientific simulation/calibration results.
+          "@
+          $notes | Set-Content Windows-release-notes.md -Encoding utf8
+          $assets = @(
+            "installer-output/GeoForge-Desktop-Setup-v$env:APP_VERSION-Windows-x64.exe",
+            "GeoForge-Desktop-v$env:APP_VERSION-Windows-x64.zip",
+            'SHA256SUMS-Windows.txt', 'release-manifest.json', 'DESKTOP_CHANGELOG.md',
+            'Windows-release-validation.json', 'windows-frozen-smoke.json', 'windows-installed-smoke.json'
+          )
+          # Creation fails if any release already exists. A failed upload leaves
+          # a draft for manual inspection; reruns never delete or overwrite it.
+          gh release create $env:RELEASE_TAG @assets --verify-tag --draft --title "GeoForge Desktop $env:APP_VERSION Windows" --notes-file Windows-release-notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'release creation/upload failed; any draft is preserved' }
+          gh release edit $env:RELEASE_TAG --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'publication failed; draft and uploaded assets are preserved' }

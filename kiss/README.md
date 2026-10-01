@@ -1,5 +1,10 @@
 # `kiss` — the KI initializer
 
+This is the engine inside [GeoForge Desktop for Windows](../README.md).
+Windows installation and source-startup instructions are in that repository
+guide; the notes below also describe inherited cross-platform engine behavior.
+For native packaging and release checks, see [Windows release documentation](../docs/WINDOWS_RELEASE.md).
+
 Turn a downloaded KI package into a working model on your machine, and hand
 whatever cannot be automated to your AI coding agent.
 

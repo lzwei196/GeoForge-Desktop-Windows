@@ -347,6 +347,9 @@ class KiUpdateTests(unittest.TestCase):
         opener.open.assert_called_once_with(request, timeout=12)
 
     def test_ki_updates_use_canonical_main_unless_explicitly_overridden(self):
+        self.assertEqual(
+            ki_updates.REPOSITORY,
+            "lzwei196/KISS-Knowledge-Infrastructure-for-Scientific-Simulation")
         with mock.patch.dict(
                 ki_updates.os.environ,
                 {"GEOFORGE_KI_UPDATE_BRANCH": ""}, clear=False):
