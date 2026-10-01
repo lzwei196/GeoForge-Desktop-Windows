@@ -61,6 +61,15 @@ on `PYTHONPATH` (not an unrelated installed editable package):
 - Workflow YAML contract tests, changed Python/spec parsing, smoke-driver
   `--help`, and `git diff --check` passed.
 
+The broader Desktop run was **not fully green** on this host: **1,450 passed,
+38 skipped, 288 subtests passed, 9 failed**. All nine failures are in the
+unchanged `kiss/tests/test_runtime.py`, and reproduce when run alone: eight
+mock Windows `os.name` and encounter Python 3.13's `WindowsPath` construction
+refusal on macOS; one expects `telemac2d.exe` while POSIX returns `telemac2d`.
+That test file and the involved `install.py`/`runnable.py` implementations are
+identical to the imported source commit. They were not relaxed or changed to
+make a Windows-oriented suite appear green on this non-Windows host.
+
 PowerShell and `actionlint` were unavailable on this host. No Windows executable
 or installer was built or run, and these source checks do not substitute for
 the native release workflow's acceptance checks.
